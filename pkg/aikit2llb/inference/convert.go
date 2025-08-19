@@ -187,3 +187,25 @@ func addLocalAI(c *config.InferenceConfig, s llb.State, merge llb.State, platfor
 func cloneLocalAI(s llb.State) llb.State {
 	return s.Run(utils.Shf("git clone --filter=blob:none --no-checkout %[1]s /tmp/localai/ && cd /tmp/localai && git sparse-checkout init --cone && git sparse-checkout set backend/python && git checkout %[2]s && rm -rf .git", localAIRepo, localAIVersion)).Root()
 }
+
+func addCDIDevices(c *config.InferenceConfig, s llb.State) llb.State {
+	for _, device := range c.Devices {
+		deviceOpts := []llb.CDIOption{}
+		if !device.Required {
+			deviceOpts = append(deviceOpts, llb.CDIDeviceOptional)
+		}
+
+		var deviceName string
+		if device.Class != "" {
+			deviceName = device.Class
+		} else {
+			deviceName = device.Name
+		}
+
+		s = s.Run(
+			llb.Shlex("echo 'Device access configured'"),
+			llb.AddCDIDevice(llb.CDIDeviceName(deviceName), deviceOpts...),
+		).Root()
+	}
+	return s
+}
